@@ -114,7 +114,7 @@ function newickToCustomFormat(tree) {
 }
 
 // === File I/O ===
-const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Paracoccus.newick"; // <-- Paste your file path here
+const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Xanthomonas_fasttree.newick"; // <-- Paste your file path here
 const outputPath = inputPath.replace(".newick", ".json");
 
 if (!fs.existsSync(inputPath)) {

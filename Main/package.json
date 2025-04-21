@@ -8,5 +8,9 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": ""
+  "description": "",
+  "dependencies": {
+    "fs": "^0.0.1-security",
+    "newick": "^2.0.0"
+  }
 }

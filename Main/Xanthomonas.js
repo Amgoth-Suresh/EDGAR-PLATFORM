@@ -1,61 +1,27 @@
-
-// function getLinkColor(value) {
-//     // Example logic: color links based on distance values with red gradient variants
-//     const num = parseFloat(value);
-//     if (num < 0.001) return '#FFB6C1';     // light red
-//     if (num < 0.01) return '#FF6347';      // tomato red
-//     if (num < 0.1) return '#FF4500';       // orange red
-//     return '#B22222';                      // firebrick red
-// }
-
-
 function getLinkColor(value) {
-    // Example logic: color links based on distance values
     const num = parseFloat(value);
     if (num < 0.001) return '#2ECC71';     // green
-    if (num < 0.01) return '#F1C40F';       // yellow
-    if (num < 0.1) return '#E67E22';        // orange
-    return '#E74C3C';                       // red
+    if (num < 0.01) return '#F1C40F';      // yellow
+    if (num < 0.1) return '#E67E22';       // orange
+    return '#E74C3C';                      // red
 }
-
 
 Highcharts.chart('container', {
     chart: {
         spacingBottom: 30,
-        marginRight: 500,
-        type: 'treegraph',
+        marginRight: 400,
         width: null,
-        height: 3000,
-        zoomType: 'xy',
-        panning: true,
-        panKey: 'shift'
-        
+        height: 4000,
     },
     title: {
-        text: 'Phylogenetic Tree Visualization'
+        text: 'Phylogenetic language tree'
     },
-    series: [{
-        colorByPoint: false,
-        dataLabels: {
-            enabled: true,
-            linkFormat: '<span style="color: green; font-size: 7px;">{point.customLabel}</span>', // Style only customLabel
-            align: 'left',
-            style: {
-                fontSize: '9px',
-                fontWeight: 'normal',
-                overFlow: 'justify',
-                color: 'black',
-                width: '150px',
-                whiteSpace: 'nowrap'
-            },
-            crop: false,
-            allowOverlap: false,
-            padding: 2,
-            rotation: 0,
-        },
-        data: [
-            
-            
+    series: [
+        {
+            type: 'treegraph',
+            clip: false,
+            data: 
+            [
                 { id: 'root', name: 'Root', level: 0 },
                 { id: 'Internal_node0', parent: 'root', name: '1', customLabel: '0', level: 1, link: { color: getLinkColor('0') } },
                 { id: 'Xanthomonas_oryzae_pv_oryzae_strain_ScYc_b_NZ_CP018087', parent: 'Internal_node0', name: 'Xanthomonas_oryzae_pv_oryzae_strain_ScYc_b_NZ_CP018087', customLabel: '0.000000005', level: 35, link: { color: getLinkColor('0.000000005') } },
@@ -557,55 +523,48 @@ Highcharts.chart('container', {
                 { id: 'Xanthomonas_oryzae_pv_oryzae_strain_PXO421_NZ_CP033189', parent: 'Internal_node238', name: 'Xanthomonas_oryzae_pv_oryzae_strain_PXO421_NZ_CP033189', customLabel: '0', level: 35, link: { color: getLinkColor('0') } },
                 { id: 'Xanthomonas_oryzae_pv_oryzae_strain_PXO513_NZ_CP033188', parent: 'Internal_node238', name: 'Xanthomonas_oryzae_pv_oryzae_strain_PXO513_NZ_CP033188', customLabel: '0', level: 35, link: { color: getLinkColor('0') } },
                 { id: 'Xanthomonas_oryzae_pv_oryzae_strain_XM9_NZ_CP020334', parent: 'Internal_node232', name: 'Xanthomonas_oryzae_pv_oryzae_strain_XM9_NZ_CP020334', customLabel: '0.000066415', level: 35, link: { color: getLinkColor('0.000066415') } }
-              
-              
-               
-              
-        ],
-        marker: {
-            symbol: 'circle',
-            radius: 5,
-            fillcolor: '#ffffff',
-            linewidth: 9
-        },
-        levels:[
-            {
-                level:2,
-                colorByPoint:true,
-                
+              ],
+            marker: {
+                symbol: 'circle',
+                radius: 3,
+                fillColor: '#ffffff',
+                lineWidth: 3
             },
-            {
-                level:3,
-                colorByPoint:false,
-                colorVariation:{
-                    key: 'brightness',
-                    to: -0.5
-                }
+            dataLabels: {
+                align: 'left',
+                linkFormat: '<span style="color: green; font-size: 8px;">{point.customLabel}</span>',
+                pointFormat: '{point.name}',
+                pointerEvents: 'none',
+                style: {
+                    color: '#000000',
+                    textOutline: '3px #ffffff',
+                    whiteSpace: 'nowrap'
+                },
+                x:20,
+                crop: false,
+                overflow: 'none'
             },
-            {
-                level:4,
-                colorByPoint:false,
-                colorVariation:{
-                    key: 'brightness',
-                    to: -0.5
-                }
-            }
-            
-        ],
-        point: {
-            events: {
-                click: function () {
-                    if (!this.children || this.children.length === 0) {
-                        if (!this.id.startsWith('Internal') && this.id !== 'root') {
-                            const newLabel = prompt('Edit node label:', this.id);
-                            if (newLabel !== null) {
-                                this.update({ name: newLabel });
+            levels: [
+                { level: 2, colorByPoint: true },
+                { level: 3, colorByPoint: true },
+                { level: 4, colorByPoint: true },
+                { level: 5, colorByPoint: true },
+                { level: 6, colorByPoint: true }
+            ],
+            point: {
+                events: {
+                    click: function () {
+                        if (!this.children || this.children.length === 0) {
+                            if (!this.id.startsWith('Internal') && this.id !== 'root') {
+                                const newLabel = prompt('Edit node label:', this.name);
+                                if (newLabel !== null) {
+                                    this.update({ name: newLabel });
+                                }
                             }
                         }
                     }
                 }
             }
         }
-    }]
+    ]
 });
-
