@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gradient Visualization</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-wrap: wrap;
+      margin: 0;
+      padding: 0;
+    }
+    .color-box {
+      width: 40px;
+      height: 40px;
+      margin: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px black;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    //-------------------------------------------------------------------------------------------------------------
+    function hexToRgb(hex) {
+        let bigint = parseInt(hex.replace('#', ''), 16);
+        return { r: (bigint >> 16) & 255, g: (bigint >> 8) & 255, b: bigint & 255 };
+    }
+    function rgbToHex(r, g, b) {
+        return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase()}`;
+    }
+    function lerp(start, end, t) {
+        return start + (end - start) * t;
+    }
+    function generateGradientColors(rangeValues, transitionColors) {
+        const [min, max] = rangeValues;
+        const totalSteps = max - min;
+        const resultColors = [];
+        const rgbColors = transitionColors.map(hexToRgb);
+        for (let i = 0; i <= totalSteps; i++) {
+            const t = i / totalSteps;
+            const scaledT = t * (rgbColors.length - 1);
+            const startIdx = Math.floor(scaledT);
+            const endIdx = Math.min(startIdx + 1, rgbColors.length - 1);
+            const localT = scaledT - startIdx;
+            const startColor = rgbColors[startIdx];
+            const endColor = rgbColors[endIdx];
+            const blendedColor = {
+                r: Math.round(lerp(startColor.r, endColor.r, localT)),
+                g: Math.round(lerp(startColor.g, endColor.g, localT)),
+                b: Math.round(lerp(startColor.b, endColor.b, localT))
+            };
+            resultColors.push(rgbToHex(blendedColor.r, blendedColor.g, blendedColor.b));
+        }
+        return resultColors;
+    }
+
+    var numRange = [1, 903];
+    var transitionColors = ['#440154', '#3b528b', '#21908c', '#5dc963', '#fde725'];
+    var gradientColors = generateGradientColors(numRange, transitionColors);
+	//-------------------------------------------------------------------------------------------------------------
+	
+    const body = document.body;
+    gradientColors.forEach((color, index) => {
+        const box = document.createElement('div');
+        box.className = 'color-box';
+        box.style.backgroundColor = color;
+        box.textContent = index + 1;
+        body.appendChild(box);
+    });
+  </script>
+</body>
+</html>
