@@ -1,144 +1,136 @@
 const fs = require('fs');
+const path = require('path');
 
-function parseNewick(s) {
-    var ancestors = [];
-    var tree = {};
-    var tokens = s.split(/\s*(;|\(|\)|,|:)\s*/);
-    var current = tree;
-    
-    for (var i = 0; i < tokens.length; i++) {
-        var token = tokens[i];
+// === Newick Parser ===
+function parseNewick(newick) {
+    let ancestors = [];
+    let tree = {};
+    let tokens = newick.split(/\s*(;|\(|\)|,|:)\s*/);
+    let subtree;
+
+    for (let i = 0; i < tokens.length; i++) {
+        let token = tokens[i];
         switch (token) {
             case '(':
-                var parent = current;
-                current.children = [{}];
-                ancestors.push(parent);
-                current = current.children[0];
+                subtree = {};
+                if (!tree.children) tree.children = [];
+                tree.children.push(subtree);
+                ancestors.push(tree);
+                tree = subtree;
                 break;
             case ',':
-                var parent = ancestors[ancestors.length - 1];
-                parent.children.push({});
-                current = parent.children[parent.children.length - 1];
+                subtree = {};
+                ancestors[ancestors.length - 1].children.push(subtree);
+                tree = subtree;
                 break;
             case ')':
-                current = ancestors.pop();
+                tree = ancestors.pop();
                 break;
             case ':':
                 break;
             default:
-                var x = tokens[i - 1];
-                if (x === ')' || x === '(' || x === ',') {
-                    current.name = token;
-                } else if (x === ':') {
-                    current.length = parseFloat(token);
+                let prevToken = tokens[i - 1];
+                if (prevToken === ':' && typeof tree.dist === 'undefined') {
+                    tree.dist = parseFloat(token);
+                } else if (token !== ';') {
+                    tree.name = token;
                 }
         }
     }
     return tree;
 }
 
-function newickToCustomFormat(newickStr) {
-    const jsonNodes = [{ id: 'root', name: 'Root', level: 0 }];
+// === Helper Function ===
+function getMaxDepth(node, depth = 1) {
+    if (!node.children || node.children.length === 0) return depth;
+    return Math.max(...node.children.map(child => getMaxDepth(child, depth + 1)));
+}
+
+// === Converter ===
+function newickToCustomFormat(tree) {
+    let jsonNodes = [{ id: 'root', name: 'Root', level: 0 }];
     let nodeCounter = 0;
 
-    const createNodeId = () => `Internal_node${nodeCounter++}`;
+    function createNodeId() {
+        return `Internal_node${nodeCounter++}`;
+    }
 
-    const processNodeName = (name) => {
-        let processed = name ? name.trim() : '1';
-        if (processed.includes('.')) {
-            processed = processed.replace(/0+$/, '');
-            processed = processed.replace(/\.$/, '');
-        }
-        return processed === '' ? '1' : processed;
-    };
+    const maxDepth = getMaxDepth(tree, 2); // Root starts at level 1
 
-    const formatDist = (dist) => {
-        if (dist === undefined || dist === null) return '0';
-        let str = Number(dist).toFixed(9);
-        str = str.replace(/0+$/, '');
-        if (str.endsWith('.')) str = str.slice(0, -1);
-        return str || '0';
-    };
-
-    function traverse(node, parentId, currentLevel) {
+    function processNode(node, parentId, currentLevel) {
         if (!node.children || node.children.length === 0) {
+            const value = node.dist ? parseFloat(node.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
             jsonNodes.push({
                 id: node.name,
                 parent: parentId,
                 name: node.name,
-                customLabel: formatDist(node.length),
-                level: currentLevel
+                customLabel: value,
+                level: maxDepth,
+                link: {
+                    color: `getLinkColor('${value}')`
+                }
             });
         } else {
             const currentId = createNodeId();
-            const name = processNodeName(node.name);
-            const customLabel = formatDist(node.length);
-            
+            let name = node.name?.trim() || '1';
+            if (name.includes('.')) {
+                name = name.replace(/0+$/, '').replace(/\.$/, '');
+            }
+            const value = node.dist ? parseFloat(node.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
+
             jsonNodes.push({
                 id: currentId,
                 parent: parentId,
                 name: name,
-                customLabel: customLabel,
-                level: currentLevel
+                customLabel: value,
+                level: currentLevel,
+                link: {
+                    color: `getLinkColor('${value}')`
+                }
             });
 
-            node.children.forEach(child => {
-                traverse(child, currentId, currentLevel + 1);
-            });
+            node.children.forEach(child => processNode(child, currentId, currentLevel + 1));
         }
     }
 
-    try {
-        const rootNode = parseNewick(newickStr);
-        const rootId = createNodeId();
-        const rootName = processNodeName(rootNode.name);
-        
-        jsonNodes.push({
-            id: rootId,
-            parent: 'root',
-            name: rootName,
-            customLabel: formatDist(rootNode.length),
-            level: 1
-        });
+    // Process root
+    const rootId = createNodeId();
+    const rootValue = tree.dist ? parseFloat(tree.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
 
-        if (rootNode.children) {
-            rootNode.children.forEach(child => {
-                traverse(child, rootId, 2);
-            });
+    jsonNodes.push({
+        id: rootId,
+        parent: 'root',
+        name: tree.name || '1',
+        customLabel: rootValue,
+        level: 1,
+        link: {
+            color: `getLinkColor('${rootValue}')`
         }
+    });
 
-        return jsonNodes;
-    } catch (error) {
-        throw new Error(`Newick parsing failed: ${error.message}`);
-    }
+    tree.children?.forEach(child => processNode(child, rootId, 2));
+
+    return jsonNodes;
 }
 
-function saveAsJsObject(data, outputPath) {
-    const content = [
-        '[',
-        ...data.map((node, i) => {
-            const fields = Object.entries(node).map(([key, value]) => 
-                key === 'level' ? `${key}: ${value}` : `${key}: '${value}'`
-            );
-            return `  { ${fields.join(', ')} }${i < data.length - 1 ? ',' : ''}`;
-        }),
-        ']'
-    ].join('\n');
+// === File I/O ===
+const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Paracoccus.newick"; // <-- Paste your file path here
+const outputPath = inputPath.replace(".newick", ".json");
 
-    fs.writeFileSync(outputPath, content);
+if (!fs.existsSync(inputPath)) {
+    console.error("❌ File not found. Please check the input path.");
+    process.exit(1);
 }
 
-// File paths
-const inputPath = "C:\\Users\\amgot\\OneDrive\\Desktop\\Edgar Internship\\EDGAR_Test\\Main\\newicks\\EDGAR_Acidovorax_fasttree.newick";
-const outputPath = inputPath.replace(/\.newick$/, '.json');
+const newickData = fs.readFileSync(inputPath, 'utf8');
+const parsedTree = parseNewick(newickData);
+const jsonResult = newickToCustomFormat(parsedTree);
 
-// Main execution
-try {
-    const newickData = fs.readFileSync(inputPath, 'utf8');
-    const customNodes = newickToCustomFormat(newickData);
-    saveAsJsObject(customNodes, outputPath);
-    console.log(`Custom-format tree saved to: ${outputPath}`);
-    console.log("Conversion completed successfully.");
-} catch (error) {
-    console.error("Error:", error.message);
-}
+// === Save to .js without customTreeData ===
+const outputJS = JSON.stringify(jsonResult, null, 2)
+    .replace(/"getLinkColor\('([^']+)'\)"/g, "getLinkColor('$1')") + "\n"; // Removed 'customTreeData' and trailing semicolon
+
+fs.writeFileSync(outputPath, outputJS, 'utf8');
+
+console.log("Custom-format JS tree saved to: " + outputPath);
+console.log("Conversion completed successfully.");

@@ -24,13 +24,13 @@ def newick_to_custom_format(newick_str):
         if node.is_leaf():
             value = f"{node.dist:.9f}".rstrip('0').rstrip('.') if node.dist else '0'
             json_nodes.append({
-                'id': node.name,
-                'parent': parent_id,
-                'name': node.name,
-                'customLabel': value,
-                'level': max_depth,  # <- Force constant leaf level
-                'link': {
-                    'color': f"getLinkColor('{value}')"
+                "id": node.name,
+                "parent": parent_id,
+                "name": node.name,
+                "customLabel": value,
+                "level": max_depth,  # <- Force constant leaf level
+                "link": {
+                    "color": f"getLinkColor('{value}')"
                 }
             })
         else:
@@ -41,13 +41,13 @@ def newick_to_custom_format(newick_str):
             name = name if name else '1'
             value = f"{node.dist:.9f}".rstrip('0').rstrip('.') if node.dist else '0'
             json_nodes.append({
-                'id': current_id,
-                'parent': parent_id,
-                'name': name,
-                'customLabel': value,
-                'level': current_level,
-                'link': {
-                    'color': f"getLinkColor('{value}')"
+                "id": current_id,
+                "parent": parent_id,
+                "name": name,
+                "customLabel": value,
+                "level": current_level,
+                "link": {
+                    "color": f"getLinkColor('{value}')"
                 }
             })
 
@@ -59,13 +59,13 @@ def newick_to_custom_format(newick_str):
     root_value = f"{tree.dist:.9f}".rstrip('0').rstrip('.') if tree.dist else '0'
 
     json_nodes.append({
-        'id': root_id,
-        'parent': 'root',
-        'name': tree.name if tree.name else '1',
-        'customLabel': root_value,
-        'level': 1,
-        'link': {
-            'color': f"getLinkColor('{root_value}')"
+        "id": root_id,
+        "parent": "root",
+        "name": tree.name if tree.name else '1',
+        "customLabel": root_value,
+        "level": 1,
+        "link": {
+            "color": f"getLinkColor('{root_value}')"
         }
     })
 
@@ -82,15 +82,15 @@ def save_as_js_object(data, output_path):
             for key, value in node.items():
                 if isinstance(value, dict):
                     if key == 'link':
-                        inner = ", ".join([f"{k}: {v}" for k, v in value.items()])
-                        items.append(f"{key}: {{ {inner} }}")
+                        inner = ", ".join([f'"{k}": {v}' for k, v in value.items()])
+                        items.append(f'"{key}": {{ {inner} }}')
                     else:
-                        inner = ", ".join([f"{k}: '{v}'" for k, v in value.items()])
-                        items.append(f"{key}: {{ {inner} }}")
+                        inner = ", ".join([f'"{k}": "{v}"' for k, v in value.items()])
+                        items.append(f'"{key}": {{ {inner} }}')
                 elif isinstance(value, int):
-                    items.append(f"{key}: {value}")
+                    items.append(f'"{key}": {value}')
                 else:
-                    items.append(f"{key}: '{value}'")
+                    items.append(f'"{key}": "{value}"')
             line = "  { " + ", ".join(items) + " }"
             if i < len(data) - 1:
                 line += ","
@@ -98,7 +98,7 @@ def save_as_js_object(data, output_path):
         f.write("]\n")
 
 # === File Handling ===
-input_path = r"C:\Users\amgot\OneDrive\Desktop\Edgar Internship\EDGAR_Test\Main\newicks\EDGAR_Xanthomonas_fasttree.newick"
+input_path = r"C:\Users\amgot\OneDrive\Desktop\Edgar Internship\EDGAR_Test\Main\newicks\EDGAR_Paracoccus.newick"
 output_path = os.path.splitext(input_path)[0] + ".json"
 
 # Read the Newick file
