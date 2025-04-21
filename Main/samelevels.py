@@ -98,7 +98,7 @@ def save_as_js_object(data, output_path):
         f.write("]\n")
 
 # === File Handling ===
-input_path = r"C:\Users\amgot\OneDrive\Desktop\Edgar Internship\EDGAR_Test\Main\newicks\EDGAR_Paracoccus.newick"
+input_path = r"C:\Users\amgot\OneDrive\Desktop\Edgar Internship\EDGAR_Test\Main\newicks\EDGAR_Acidovorax_fasttree.newick"
 output_path = os.path.splitext(input_path)[0] + ".json"
 
 # Read the Newick file
