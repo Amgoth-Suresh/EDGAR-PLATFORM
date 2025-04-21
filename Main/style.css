@@ -12,28 +12,16 @@
         sans-serif;
 }
 
-body, html {
-    width: 100%;
-    height: 100%;
-    overflow-x: auto; /* Ensure horizontal scrolling is enabled for the page */
-    margin: 0;
-}
-
 .highcharts-figure {
     margin: 0 auto;
-    max-width: 100%;
+    max-width: 900px;
     min-width: 360px;
 }
 
 #container {
-    height: 100%;  /* Set your desired height */
-    width: 100%;  /* Set a fixed width or large value */
-    max-width: none;  /* Allow it to expand beyond parent container */
-    margin: 0 auto;  /* Center the container */
-    overflow-x: auto;  /* Ensure horizontal scroll */
+    height: 1200px;
 }
 
 .highcharts-description {
-    background-color: rgb(110, 110, 232);
-    margin: 0.3rem 7px;
+    margin: 0.3rem 10px;
 }

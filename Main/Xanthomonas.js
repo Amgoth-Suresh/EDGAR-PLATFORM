@@ -10,11 +10,15 @@ Highcharts.chart('container', {
     chart: {
         spacingBottom: 30,
         marginRight: 400,
-        width: null,
-        height: 4000,
+        height: 1200,
     },
     title: {
         text: 'Phylogenetic language tree'
+    },
+    tooltip: {
+        pointFormatter: function () {
+            return `<b>${this.name}</b>`;
+        }
     },
     series: [
         {

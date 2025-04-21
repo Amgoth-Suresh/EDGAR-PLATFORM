@@ -16,6 +16,11 @@ Highcharts.chart('container', {
     title: {
         text: 'Phylogenetic language tree'
     },
+    tooltip: {
+      pointFormatter: function () {
+          return `<b>${this.name}</b>`;
+      }
+    },
     series: [
         {
             type: 'treegraph',
