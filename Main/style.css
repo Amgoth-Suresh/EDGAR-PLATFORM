@@ -1,3 +1,4 @@
+/* General Font Setup */
 * {
     font-family:
         -apple-system,
@@ -12,16 +13,48 @@
         sans-serif;
 }
 
+/* Container for Highcharts */
 .highcharts-figure {
     margin: 0 auto;
     max-width: 900px;
     min-width: 360px;
 }
 
+/* Chart container styling */
 #container {
-    height: 1200px;
+    width: 100%;
+    height: auto;               /* Make height responsive */
+    max-height: 1200px;         /* Set a maximum height to prevent overflow */
+    margin: 0 auto;             /* Center align the chart */
+    overflow: auto;             /* Enable scrolling if the content overflows */
 }
 
+/* Highcharts Description Styling */
 .highcharts-description {
     margin: 0.3rem 10px;
 }
+
+/* Media Queries for Responsiveness */
+@media (max-width: 600px) {
+    #container {
+        height: 400px; /* Adjust for smaller screens */
+    }
+}
+
+@media (min-width: 600px) {
+    #container {
+        height: 800px; /* Adjust for larger screens */
+    }
+}
+
+/* Styling for the chart's axis labels */
+.highcharts-axis-labels {
+    font-size: 14px;
+}
+
+/* Set maximum width and prevent chart from growing too large on wide screens */
+.highcharts-figure {
+    max-width: 100%; /* Ensure it scales to the screen */
+    padding: 0 10px; /* Provide some margin space */
+}
+
