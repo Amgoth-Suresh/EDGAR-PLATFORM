@@ -1,4 +1,3 @@
-// Define the getLinkColor function
 function getLinkColor(value) {
   const num = parseFloat(value); // Convert the value to a float
   if (num < 0.001) return '#2ECC71';     // green
@@ -7,7 +6,6 @@ function getLinkColor(value) {
   return '#E74C3C';                      // red
 }
 
-// Fetch the data from the EDGAR_Xanthomonas_fasttree.json file inside the 'newicks' folder
 fetch('newicks/EDGAR_Acidovorax_fasttree.json')
   .then(response => {
       if (!response.ok) {
@@ -16,16 +14,14 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       return response.json();
   })
   .then(data => {
-      // Add link color dynamically based on customLabel
       data.forEach(point => {
           if (point.customLabel !== undefined) {
               point.link = {
-                  color: getLinkColor(point.customLabel) // Apply getLinkColor dynamically
+                  color: getLinkColor(point.customLabel) 
               };
           }
       });
 
-      // Create Highcharts treegraph
       Highcharts.chart('container', {
           chart: {
               spacingBottom: 30,
