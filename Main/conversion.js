@@ -66,9 +66,6 @@ function newickToCustomFormat(tree) {
                 name: node.name,
                 customLabel: value,
                 level: maxDepth,
-                link: {
-                    color: `getLinkColor('${value}')`
-                }
             });
         } else {
             const currentId = createNodeId();
@@ -84,9 +81,6 @@ function newickToCustomFormat(tree) {
                 name: name,
                 customLabel: value,
                 level: currentLevel,
-                link: {
-                    color: `getLinkColor('${value}')`
-                }
             });
 
             node.children.forEach(child => processNode(child, currentId, currentLevel + 1));
@@ -103,9 +97,6 @@ function newickToCustomFormat(tree) {
         name: tree.name || '1',
         customLabel: rootValue,
         level: 1,
-        link: {
-            color: `getLinkColor('${rootValue}')`
-        }
     });
 
     tree.children?.forEach(child => processNode(child, rootId, 2));
