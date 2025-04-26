@@ -198,10 +198,10 @@ Highcharts.chart('container', {
             },
             levels: [
                 { level: 2, colorByPoint: true },
-                { level: 3, colorByPoint: true },
-                { level: 4, colorByPoint: true },
-                { level: 5, colorByPoint: true },
-                { level: 6, colorByPoint: true }
+                // { level: 3, colorByPoint: true },
+                // { level: 4, colorByPoint: true },
+                // { level: 5, colorByPoint: true },
+                // { level: 6, colorByPoint: true }
             ],
             point: {
                 events: {
