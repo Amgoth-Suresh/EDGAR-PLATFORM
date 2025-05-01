@@ -1,7 +1,6 @@
 const fs = require('fs');
 const path = require('path');
 
-// === Newick Parser ===
 function parseNewick(newick) {
     let ancestors = [];
     let tree = {};
@@ -40,13 +39,11 @@ function parseNewick(newick) {
     return tree;
 }
 
-// === Helper Function ===
 function getMaxDepth(node, depth = 1) {
     if (!node.children || node.children.length === 0) return depth;
     return Math.max(...node.children.map(child => getMaxDepth(child, depth + 1)));
 }
 
-// === Converter ===
 function newickToCustomFormat(tree) {
     let jsonNodes = [{ id: 'root', name: 'Root', level: 0 }];
     let nodeCounter = 0;
@@ -87,7 +84,6 @@ function newickToCustomFormat(tree) {
         }
     }
 
-    // Process root
     const rootId = createNodeId();
     const rootValue = tree.dist ? parseFloat(tree.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
 
@@ -104,8 +100,7 @@ function newickToCustomFormat(tree) {
     return jsonNodes;
 }
 
-// === File I/O ===
-const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Xanthomonas_fasttree.newick"; // <-- Paste your file path here
+const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Streptococcus_fasttree.newick"; // <-- Paste your file path here
 const outputPath = inputPath.replace(".newick", ".json");
 
 if (!fs.existsSync(inputPath)) {
@@ -119,7 +114,7 @@ const jsonResult = newickToCustomFormat(parsedTree);
 
 // === Save to .js without customTreeData ===
 const outputJS = JSON.stringify(jsonResult, null, 2)
-    .replace(/"getLinkColor\('([^']+)'\)"/g, "getLinkColor('$1')") + "\n"; // Removed 'customTreeData' and trailing semicolon
+    .replace(/"getLinkColor\('([^']+)'\)"/g, "getLinkColor('$1')") + "\n"; 
 
 fs.writeFileSync(outputPath, outputJS, 'utf8');
 
