@@ -1,27 +1,33 @@
 * {
     font-family:
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Helvetica,
-        Arial,
-        "Apple Color Emoji",
-        "Segoe UI Emoji",
-        "Segoe UI Symbol",
-        sans-serif;
-}
-
-.highcharts-figure {
-    margin: 0 auto;
-    max-width: 900px;
-    min-width: 360px;
-}
-
-#container {
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Helvetica,
+      Arial,
+      "Apple Color Emoji",
+      "Segoe UI Emoji",
+      "Segoe UI Symbol",
+      sans-serif;
+  }
+  
+  .highcharts-figure {
+    margin: 20px auto;   /* Margin around the visualization box */
+    padding: 0;          /* Remove padding inside the wrapper */
+    max-width: 2000px;    /* Max width */
+    min-width: 900px;    /* Min width */
+    border: 2px solid #ccc; /* Border around the box */
+    border-radius: 10px; /* Optional rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Optional subtle shadow */
+    width: 100%;         /* Make the wrapper take full width */
+    box-sizing: border-box;
+  }
+  
+  #container {
     height: 1200px;
-}
-
-.highcharts-description {
+  }
+  
+  .highcharts-description {
     margin: 0.3rem 10px;
-}
+  }

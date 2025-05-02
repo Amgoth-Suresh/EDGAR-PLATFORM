@@ -21,7 +21,7 @@ function getMaxDepth(data) {
   return Math.max(...data.map(d => depth(d.id)));
 }
 
-fetch('newicks/EDGAR_Streptococcus_fasttree.json') 
+fetch('newicks/EDGAR_Acidovorax_fasttree.json') 
   .then(response => {
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
@@ -40,7 +40,8 @@ fetch('newicks/EDGAR_Streptococcus_fasttree.json')
     data.forEach(point => {
       if (point.customLabel !== undefined) {
         point.link = {
-          color: getLinkColor(point.customLabel)
+          color: getLinkColor(point.customLabel),
+          lineWidth:3
         };
       }
     });
@@ -69,14 +70,14 @@ fetch('newicks/EDGAR_Streptococcus_fasttree.json')
         data: data,
         marker: {
           symbol: 'circle',
-          radius: 4,
+          radius: 8,
           fillColor: '#ffffff',
           lineWidth: 3
         },
         dataLabels: {
           align: 'left',
           linkFormat: '<span style="color: green; font-size: 8px;">{point.customLabel}</span>',
-          pointFormat: '{point.name}',
+          pointFormat: '<span style="font-size: 12px;">{point.name}</span>',
           pointerEvents: 'none',
           style: {
             color: '#000000',
