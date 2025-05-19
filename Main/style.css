@@ -12,7 +12,7 @@
       sans-serif;
   }
   
-  .highcharts-figure {
+.highcharts-figure {
     margin: 20px auto;   /* Margin around the visualization box */
     padding: 0;          /* Remove padding inside the wrapper */
     max-width: 2000px;    /* Max width */
@@ -24,10 +24,24 @@
     box-sizing: border-box;
   }
   
-  #container {
+#container {
     height: 1200px;
   }
   
-  .highcharts-description {
+.highcharts-description {
     margin: 0.3rem 10px;
   }
+.button-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: fit-content;
+  }
+
+.small-button {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+  
+  
