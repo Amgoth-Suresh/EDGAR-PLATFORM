@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Treegraph Example</title>
+    <title>EDGAR Phylogenetic Tree Visualisation</title>
     <script src="https://code.highcharts.com/12.1.2/highcharts.js"></script>
     <script src="https://code.highcharts.com/12.1.2/modules/treemap.js"></script>
     <script src="https://code.highcharts.com/12.1.2/modules/treegraph.js"></script>
@@ -16,18 +16,17 @@
 </head>
 <body>
     <figure class="highcharts-figure">
-        <button id="toggle-bootstrap">Hide Bootstrap Values</button>
-
+        <div class="button-container">
+        <button id="toggle-bootstrap" style="font-size: 12px; padding: 4px 8px;">Hide Bootstrap Values</button> 
+        <button id="toggleBootstrapColor" style="font-size: 12px; padding: 4px 8px;">Toggle Bootstrap Color</button>
+        </div>
         <div id="container"></div>
-        
-
         <hr/>
         <p class="highcharts-description"> 
                        
         <b>Phylogenetic Tree Visualisation </b> 
         </p>
-            </figure>
-
+    </figure>
     <script type="module" src="Acidovorax.js"></script>
 </body>
 </html>
