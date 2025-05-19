@@ -1,30 +1,11 @@
-function getLinkColor(value) {
-  const num = parseFloat(value);
-  if (num < 0.001) return '#2ECC71';     // green
-  if (num < 0.01) return '#F1C40F';      // yellow
-  if (num < 0.1) return '#E67E22';       // orange
-  return '#E74C3C';                      // red
-}
-
+// main.js
+import { getLinkColor } from './functions.js';
+import { getMaxDepth } from './functions.js';
 import { setupToggleBootstrapButton } from './buttons.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   setupToggleBootstrapButton();
 });
-
-
-function getMaxDepth(data) {
-  const map = new Map();
-  data.forEach(point => map.set(point.id, point));
-
-  function depth(nodeId) {
-    const node = map.get(nodeId);
-    if (!node || !node.parent || node.parent === '') return 1;
-    return 1 + depth(node.parent);
-  }
-
-  return Math.max(...data.map(d => depth(d.id)));
-}
 
 fetch('newicks/EDGAR_Acidovorax_fasttree.json') 
   .then(response => {
