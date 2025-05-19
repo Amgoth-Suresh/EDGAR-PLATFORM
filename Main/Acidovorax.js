@@ -47,7 +47,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         events: {
           load: function() {
             
-            this.bootstrapVisible = true; // Set the default state to true
+            this.bootstrapVisible = false; // Set the default state to true
           }
         }
       },
