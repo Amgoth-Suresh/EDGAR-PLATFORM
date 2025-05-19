@@ -1,4 +1,3 @@
-// Function to get the color for the link based on customLabel value
 function getLinkColor(value) {
   const num = parseFloat(value);
   if (num < 0.001) return '#2ECC71';     // green
@@ -7,7 +6,13 @@ function getLinkColor(value) {
   return '#E74C3C';                      // red
 }
 
-// Function to calculate max depth
+import { setupToggleBootstrapButton } from './buttons.js';
+
+document.addEventListener("DOMContentLoaded", () => {
+  setupToggleBootstrapButton();
+});
+
+
 function getMaxDepth(data) {
   const map = new Map();
   data.forEach(point => map.set(point.id, point));
@@ -41,7 +46,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       if (point.customLabel !== undefined) {
         point.link = {
           color: getLinkColor(point.customLabel),
-          lineWidth:3
+          lineWidth:5
         };
       }
     });
@@ -50,21 +55,30 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
     const heightPerLevel = 150; 
     const calculatedHeight = Math.max(400, maxDepth * heightPerLevel);
     document.getElementById('container').style.height = `${calculatedHeight}px`;
+    
 
     // Render the chart
-    Highcharts.chart('container', {
+    const chart = Highcharts.chart('container', {
       chart: {
         spacingBottom: 30,
-        marginRight: 400
+        marginRight: 400,
+        
+        events: {
+          load: function() {
+            
+            this.bootstrapVisible = true; // Set the default state to true
+          }
+        }
       },
       title: {
         text: `${title} Phylogenetic Tree` 
       },
       tooltip: {
         pointFormatter: function () {
-          return `<b>${this.name}</b><br>Branch Length: ${this.customLabel || 'N/A'}`;
+          return `<b><br>Bootstrap Value: ${this.name}</b><br>Branch Length: ${this.customLabel || 'N/A'}`;
         }
       },
+      
       series: [{
         type: 'treegraph',
         data: data,
@@ -77,7 +91,16 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         dataLabels: {
           align: 'left',
           linkFormat: '<span style="color: green; font-size: 8px;">{point.customLabel}</span>',
-          pointFormat: '<span style="font-size: 12px;">{point.name}</span>',
+          formatter: function() {
+            const chart = this.series.chart;
+            const nameStr = String(this.name);
+            const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);  
+            if (isNumeric && !chart.bootstrapVisible) {
+              return ''; 
+            } else {
+              return '<span style="font-size: 12px;">' + this.name + '</span>';  // Show the name otherwise
+            }
+          },
           pointerEvents: 'none',
           style: {
             color: '#000000',
