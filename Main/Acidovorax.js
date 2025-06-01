@@ -91,8 +91,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       },
       tooltip: {
         pointFormatter: function() {
-          const bootstrap = this.inheritedBootstrap !== undefined ? this.inheritedBootstrap : 'N/A';
-          return `<b>Node: ${this.name}</b><br>Bootstrap Value: ${bootstrap}<br>Branch Length: ${this.customLabel || 'N/A'}`;
+          return `<b>BootStrap Value: ${this.name}</b><br><b>Branch Length: ${this.customLabel || 'N/A'}</b><br>`;
         }
       },
       series: [{
