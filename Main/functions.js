@@ -19,3 +19,10 @@ export function getMaxDepth(data) {
 
   return Math.max(...data.map(d => depth(d.id)));
 }
+
+export function getLinkColorByBootStrap(BootstrapValue) {
+  const num = parseFloat(BootstrapValue);
+  if (num === 1) return 'green';
+  else if (num >= 0.6 && num < 1) return 'orange';
+  return 'red';
+}

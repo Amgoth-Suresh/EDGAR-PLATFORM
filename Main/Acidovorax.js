@@ -1,65 +1,100 @@
 // main.js
-import { getLinkColor } from './functions.js';
+import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
 import { getMaxDepth } from './functions.js';
-import { setupToggleBootstrapButton } from './buttons.js';
+import { setupToggleBootstrapButton, setupToggleLinkColorButton } from './buttons.js';
 
 document.addEventListener("DOMContentLoaded", () => {
   setupToggleBootstrapButton();
 });
 
-fetch('newicks/EDGAR_Acidovorax_fasttree.json') 
+fetch('newicks/EDGAR_Acidovorax_fasttree.json')
   .then(response => {
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
-    return response.json().then(data => ({ data, url: response.url })); 
+    return response.json().then(data => ({ data, url: response.url }));
   })
   .then(({ data, url }) => {
-    
     if (!Array.isArray(data)) {
       throw new Error("Expected data to be an array.");
     }
 
-    const fileName = url.split('/').pop(); 
-    const title = fileName.replace('.json', '').replace('EDGAR_', ''); 
+    const fileName = url.split('/').pop();
+    const title = fileName.replace('.json', '').replace('EDGAR_', '');
 
+    // Build id -> point map
+    const map = new Map();
+    data.forEach(p => map.set(p.id, p));
+
+    // Identify roots and internal nodes
+    const roots = data.filter(p => !p.parent || p.parent === '');
+    
+    // Propagate bootstrap values using BFS
+    const queue = [...roots];
+    while (queue.length > 0) {
+      const node = queue.shift();
+      
+      // Only internal nodes can have bootstrap values
+      const isInternalNode = node.id.startsWith('Internal') || node.id === 'root';
+      if (isInternalNode && /^[+-]?\d+(\.\d+)?$/.test(node.name)) {
+        node.bootstrap = parseFloat(node.name);
+      }
+      
+      // Find children
+      const children = data.filter(p => p.parent === node.id);
+      children.forEach(child => {
+        // Inherit bootstrap from parent if available
+        child.inheritedBootstrap = node.bootstrap ?? node.inheritedBootstrap;
+        queue.push(child);
+      });
+    }
+
+    // Assign link colors based on parent's bootstrap
     data.forEach(point => {
-      if (point.customLabel !== undefined) {
+      if (point.parent) {
+        const parent = map.get(point.parent);
+        const bootstrapValue = parent?.inheritedBootstrap || 0;
+        
+        const customColor = getLinkColor(point.customLabel);
+        const bootstrapColor = getLinkColorByBootStrap(bootstrapValue);
+
+        point.linkColors = {
+          custom: customColor,
+          bootstrap: bootstrapColor
+        };
+
         point.link = {
-          color: getLinkColor(point.customLabel),
-          lineWidth:5
+          color: customColor, // default to customLabel color
+          lineWidth: 5
         };
       }
     });
 
     const maxDepth = getMaxDepth(data);
-    const heightPerLevel = 150; 
+    const heightPerLevel = 150;
     const calculatedHeight = Math.max(400, maxDepth * heightPerLevel);
     document.getElementById('container').style.height = `${calculatedHeight}px`;
-    
 
     // Render the chart
     const chart = Highcharts.chart('container', {
       chart: {
         spacingBottom: 30,
         marginRight: 400,
-        
         events: {
           load: function() {
-            
-            this.bootstrapVisible = false; // Set the default state to true
+            this.bootstrapVisible = false;
           }
         }
       },
       title: {
-        text: `${title} Phylogenetic Tree` 
+        text: `${title} Phylogenetic Tree`
       },
       tooltip: {
-        pointFormatter: function () {
-          return `<b><br>Bootstrap Value: ${this.name}</b><br>Branch Length: ${this.customLabel || 'N/A'}`;
+        pointFormatter: function() {
+          const bootstrap = this.inheritedBootstrap !== undefined ? this.inheritedBootstrap : 'N/A';
+          return `<b>Node: ${this.name}</b><br>Bootstrap Value: ${bootstrap}<br>Branch Length: ${this.customLabel || 'N/A'}`;
         }
       },
-      
       series: [{
         type: 'treegraph',
         data: data,
@@ -75,11 +110,11 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
           formatter: function() {
             const chart = this.series.chart;
             const nameStr = String(this.name);
-            const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);  
+            const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
             if (isNumeric && !chart.bootstrapVisible) {
-              return ''; 
+              return '';
             } else {
-              return '<span style="font-size: 12px;">' + this.name + '</span>';  // Show the name otherwise
+              return '<span style="font-size: 12px;">' + this.name + '</span>';
             }
           },
           pointerEvents: 'none',
@@ -92,15 +127,20 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
           crop: false,
           overflow: 'none'
         },
-        levels: [{ level: 2, colorByPoint: true }],
+        levels: [{
+          level: 2,
+          colorByPoint: true
+        }],
         point: {
           events: {
-            click: function () {
+            click: function() {
               if (!this.children || this.children.length === 0) {
                 if (!this.id.startsWith('Internal') && this.id !== 'root') {
                   const newLabel = prompt('Edit node label:', this.name);
                   if (newLabel !== null) {
-                    this.update({ name: newLabel });
+                    this.update({
+                      name: newLabel
+                    });
                   }
                 }
               }
@@ -109,6 +149,8 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         }
       }]
     });
+    
+    setupToggleLinkColorButton(chart, data);
   })
   .catch(error => {
     console.error("Failed to load or process JSON:", error);
