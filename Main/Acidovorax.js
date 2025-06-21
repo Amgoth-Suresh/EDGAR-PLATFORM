@@ -1,7 +1,8 @@
 // main.js
 import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
-import { getMaxDepth } from './functions.js';
+import { getMaxDepth , buildGeneSetRecursively } from './functions.js';
 import { setupToggleBootstrapButton, setupToggleLinkColorButton } from './buttons.js';
+
 
 document.addEventListener("DOMContentLoaded", () => {
   setupToggleBootstrapButton();
@@ -25,9 +26,25 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
     // Build id -> point map
     const map = new Map();
     data.forEach(p => map.set(p.id, p));
+    // Enrich leaf nodes with gene count
+    // Initialize geneSet for leaf nodes
+    data.forEach(p => {
+      const originalName = p.name?.split(" (")[0]; // remove count suffix if any
+      if (geneCounts[originalName]) {
+        p.geneSet = new Set(geneCounts[originalName]);
+      } else {
+        p.geneSet = new Set(); // for internal nodes
+      }
+    });
+
+
 
     // Identify roots and internal nodes
     const roots = data.filter(p => !p.parent || p.parent === '');
+    roots.forEach(root => {
+      buildGeneSetRecursively(root.id, map, data);
+    });
+
     
     // Propagate bootstrap values using BFS
     const queue = [...roots];
@@ -91,7 +108,15 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       },
       tooltip: {
         pointFormatter: function() {
-          return `<b>BootStrap Value: ${this.name}</b><br><b>Branch Length: ${this.customLabel || 'N/A'}</b><br>`;
+          const nameStr = String(this.name);
+          const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
+          const geneCount = this.geneSet ? this.geneSet.size : (this.colorValue || 0);
+
+          const geneInfo = `<b>Core Genes:</b> ${geneCount}<br>`;
+          const bootstrap = `<b>BootStrap Value:</b> ${nameStr}<br>`;
+          const branchLen = `<b>Branch Length:</b> ${this.customLabel || 'N/A'}<br>`;
+
+          return `${geneInfo}${bootstrap}${branchLen}`;
         }
       },
       series: [{

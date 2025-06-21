@@ -26,3 +26,27 @@ export function getLinkColorByBootStrap(BootstrapValue) {
   else if (num >= 0.6 && num < 1) return 'orange';
   return 'red';
 }
+
+export function buildGeneSetRecursively(nodeId, map, data) {
+  const node = map.get(nodeId);
+  if (!node) return new Set();
+
+  // Already computed
+  if (node.geneSet && node.geneSet.size > 0) {
+    return node.geneSet;
+  }
+
+  const children = data.filter(p => p.parent === nodeId);
+  let combined = new Set();
+
+  for (const child of children) {
+    const childSet = buildGeneSetRecursively(child.id, map, data);
+    childSet.forEach(g => combined.add(g));
+  }
+
+  node.geneSet = combined;
+  return combined;
+}
+
+
+
