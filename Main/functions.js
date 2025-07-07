@@ -47,6 +47,64 @@ export function buildGeneSetRecursively(nodeId, map, data) {
   node.geneSet = combined;
   return combined;
 }
+export function annotateTreeWithCoreAndTotalGenes(data, geneCounts) {
+  const map = new Map();
+  data.forEach(d => map.set(d.id, d));
+
+  function getDescendantStrains(nodeId) {
+    const children = data.filter(d => d.parent === nodeId);
+    if (!children.length) {
+      return geneCounts[nodeId] ? [nodeId] : [];
+    }
+    return children.flatMap(child => getDescendantStrains(child.id));
+  }
+
+  function getCoreGenes(strains) {
+    if (!strains.length) return [];
+    const sets = strains.map(strain => new Set(geneCounts[strain] || []));
+    return [...sets.reduce((acc, set) => new Set([...acc].filter(g => set.has(g))))];
+  }
+
+  function getUnionGenes(strains) {
+    const all = new Set();
+    strains.forEach(strain => {
+      (geneCounts[strain] || []).forEach(g => all.add(g));
+    });
+    return [...all];
+  }
+
+  data.forEach(node => {
+    const children = data.filter(d => d.parent === node.id);
+
+    if (!children.length && geneCounts[node.id]) {
+      // Leaf node
+      const totalGenes = geneCounts[node.id].length;
+      const parentId = node.parent;
+      const siblingNodes = data.filter(d => d.parent === parentId && d.id !== node.id);
+
+      // Collect all descendant strains from siblings
+      const siblingStrains = siblingNodes.flatMap(sibling => getDescendantStrains(sibling.id));
+
+      if (siblingStrains.length > 0) {
+        const siblingCore = getCoreGenes(siblingStrains);
+        const strainGeneSet = new Set(geneCounts[node.id]);
+        const localCoreGenes = siblingCore.filter(g => strainGeneSet.has(g));
+        node.core_genes = localCoreGenes.length;
+      } else {
+        node.core_genes = 0;  // No meaningful comparison
+      }
+
+      node.total_genes = totalGenes;
+    } else {
+      // Internal node
+      const strains = getDescendantStrains(node.id);
+      node.core_genes = getCoreGenes(strains).length;
+      node.total_genes = getUnionGenes(strains).length;
+    }
+  });
+}
+
+
 
 
 

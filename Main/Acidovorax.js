@@ -1,8 +1,6 @@
-// main.js
 import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
-import { getMaxDepth , buildGeneSetRecursively } from './functions.js';
+import { getMaxDepth, buildGeneSetRecursively, annotateTreeWithCoreAndTotalGenes } from './functions.js';
 import { setupToggleBootstrapButton, setupToggleLinkColorButton } from './buttons.js';
-
 
 document.addEventListener("DOMContentLoaded", () => {
   setupToggleBootstrapButton();
@@ -23,55 +21,45 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
     const fileName = url.split('/').pop();
     const title = fileName.replace('.json', '').replace('EDGAR_', '');
 
-    // Build id -> point map
     const map = new Map();
     data.forEach(p => map.set(p.id, p));
-    // Enrich leaf nodes with gene count
-    // Initialize geneSet for leaf nodes
+
+    // Attach gene sets for leaf nodes from geneCounts
     data.forEach(p => {
-      const originalName = p.name?.split(" (")[0]; // remove count suffix if any
-      if (geneCounts[originalName]) {
-        p.geneSet = new Set(geneCounts[originalName]);
-      } else {
-        p.geneSet = new Set(); // for internal nodes
+      if (geneCounts[p.id]) {
+        p.geneSet = new Set(geneCounts[p.id]);
       }
     });
 
+    // Annotate core + total gene counts dynamically (all nodes)
+    annotateTreeWithCoreAndTotalGenes(data, geneCounts);
 
-
-    // Identify roots and internal nodes
+    // Identify root nodes
     const roots = data.filter(p => !p.parent || p.parent === '');
     roots.forEach(root => {
       buildGeneSetRecursively(root.id, map, data);
     });
 
-    
-    // Propagate bootstrap values using BFS
+    // Propagate bootstrap values
     const queue = [...roots];
     while (queue.length > 0) {
       const node = queue.shift();
-      
-      // Only internal nodes can have bootstrap values
       const isInternalNode = node.id.startsWith('Internal') || node.id === 'root';
       if (isInternalNode && /^[+-]?\d+(\.\d+)?$/.test(node.name)) {
         node.bootstrap = parseFloat(node.name);
       }
-      
-      // Find children
       const children = data.filter(p => p.parent === node.id);
       children.forEach(child => {
-        // Inherit bootstrap from parent if available
         child.inheritedBootstrap = node.bootstrap ?? node.inheritedBootstrap;
         queue.push(child);
       });
     }
 
-    // Assign link colors based on parent's bootstrap
+    // Assign link colors
     data.forEach(point => {
       if (point.parent) {
         const parent = map.get(point.parent);
         const bootstrapValue = parent?.inheritedBootstrap || 0;
-        
         const customColor = getLinkColor(point.customLabel);
         const bootstrapColor = getLinkColorByBootStrap(bootstrapValue);
 
@@ -81,25 +69,26 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         };
 
         point.link = {
-          color: customColor, // default to customLabel color
+          color: customColor,
           lineWidth: 5
         };
       }
     });
 
+    // Dynamic chart height
     const maxDepth = getMaxDepth(data);
     const heightPerLevel = 150;
     const calculatedHeight = Math.max(400, maxDepth * heightPerLevel);
     document.getElementById('container').style.height = `${calculatedHeight}px`;
 
-    // Render the chart
+    // Render treegraph
     const chart = Highcharts.chart('container', {
       chart: {
         spacingBottom: 30,
         marginRight: 400,
         events: {
           load: function() {
-            this.bootstrapVisible = false;
+            this.bootstrapVisible = true;
           }
         }
       },
@@ -109,14 +98,11 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       tooltip: {
         pointFormatter: function() {
           const nameStr = String(this.name);
-          const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
-          const geneCount = this.geneSet ? this.geneSet.size : (this.colorValue || 0);
-
-          const geneInfo = `<b>Core Genes:</b> ${geneCount}<br>`;
-          const bootstrap = `<b>BootStrap Value:</b> ${nameStr}<br>`;
+          const coreGenes = this.core_genes ?? 'N/A';
+          const totalGenes = this.total_genes ?? (this.geneSet?.size ?? 'N/A');
           const branchLen = `<b>Branch Length:</b> ${this.customLabel || 'N/A'}<br>`;
-
-          return `${geneInfo}${bootstrap}${branchLen}`;
+          const bootstrap = `<b>BootStrap Value:</b> ${nameStr}<br>`;
+          return `<b>Number of Genes:</b> ${totalGenes}<br><b>Core Genes:</b> ${coreGenes}<br>${bootstrap}${branchLen}`;
         }
       },
       series: [{
@@ -135,7 +121,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
             const chart = this.series.chart;
             const nameStr = String(this.name);
             const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
-            if (isNumeric && !chart.bootstrapVisible) {
+            if (isNumeric && !chart.bootstrapVisible == false) {
               return '';
             } else {
               return '<span style="font-size: 12px;">' + this.name + '</span>';
@@ -162,9 +148,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
                 if (!this.id.startsWith('Internal') && this.id !== 'root') {
                   const newLabel = prompt('Edit node label:', this.name);
                   if (newLabel !== null) {
-                    this.update({
-                      name: newLabel
-                    });
+                    this.update({ name: newLabel });
                   }
                 }
               }
@@ -173,7 +157,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         }
       }]
     });
-    
+
     setupToggleLinkColorButton(chart, data);
   })
   .catch(error => {

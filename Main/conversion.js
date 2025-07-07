@@ -1,6 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
+/**
+ * Parses a Newick string into a nested JavaScript object.
+ */
 function parseNewick(newick) {
     let ancestors = [];
     let tree = {};
@@ -28,8 +31,7 @@ function parseNewick(newick) {
             case ':':
                 break;
             default:
-                let prevToken = tokens[i - 1];
-                if (prevToken === ':' && typeof tree.dist === 'undefined') {
+                if (tokens[i - 1] === ':') {
                     tree.dist = parseFloat(token);
                 } else if (token !== ';') {
                     tree.name = token;
@@ -39,44 +41,66 @@ function parseNewick(newick) {
     return tree;
 }
 
+/**
+ * Recursively finds the maximum depth of the tree.
+ */
 function getMaxDepth(node, depth = 1) {
     if (!node.children || node.children.length === 0) return depth;
     return Math.max(...node.children.map(child => getMaxDepth(child, depth + 1)));
 }
 
+/**
+ * Formats distance values by trimming trailing zeros and decimal points.
+ */
+function formatDistance(dist) {
+    return dist ? parseFloat(dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
+}
+
+/**
+ * Converts a parsed Newick tree to a custom flat JSON format with node info.
+ */
 function newickToCustomFormat(tree) {
-    let jsonNodes = [{ id: 'root', name: 'Root', level: 0 }];
+    const jsonNodes = [];
+
+    // Add dummy root node for visualization anchoring
+    jsonNodes.push({ id: 'root', name: 'Root', level: 0 });
+
     let nodeCounter = 0;
 
     function createNodeId() {
         return `Internal_node${nodeCounter++}`;
     }
 
-    const maxDepth = getMaxDepth(tree, 2); // Root starts at level 1
+    const maxDepth = getMaxDepth(tree, 2);
+
+    function formatLabel(label) {
+        if (!label) return '1';
+        label = label.trim();
+        if (!isNaN(label)) {
+            const num = parseFloat(label);
+            return Number.isInteger(num) ? num.toString() : num.toFixed(9).replace(/0+$/, '').replace(/\.$/, '');
+        }
+        return label;
+    }
 
     function processNode(node, parentId, currentLevel) {
         if (!node.children || node.children.length === 0) {
-            const value = node.dist ? parseFloat(node.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
             jsonNodes.push({
                 id: node.name,
                 parent: parentId,
-                name: node.name,
-                customLabel: value,
+                name: formatLabel(node.name),
+                customLabel: formatDistance(node.dist),
                 level: maxDepth,
             });
         } else {
             const currentId = createNodeId();
-            let name = node.name?.trim() || '1';
-            if (name.includes('.')) {
-                name = name.replace(/0+$/, '').replace(/\.$/, '');
-            }
-            const value = node.dist ? parseFloat(node.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
+            const label = formatLabel(node.name);
 
             jsonNodes.push({
                 id: currentId,
                 parent: parentId,
-                name: name,
-                customLabel: value,
+                name: label,
+                customLabel: formatDistance(node.dist),
                 level: currentLevel,
             });
 
@@ -85,13 +109,13 @@ function newickToCustomFormat(tree) {
     }
 
     const rootId = createNodeId();
-    const rootValue = tree.dist ? parseFloat(tree.dist).toFixed(9).replace(/0+$/, '').replace(/\.$/, '') : '0';
+    const rootLabel = formatLabel(tree.name);
 
     jsonNodes.push({
         id: rootId,
-        parent: 'root',
-        name: tree.name || '1',
-        customLabel: rootValue,
+        parent: 'root', // Link real tree to dummy root
+        name: rootLabel,
+        customLabel: formatDistance(tree.dist),
         level: 1,
     });
 
@@ -100,23 +124,26 @@ function newickToCustomFormat(tree) {
     return jsonNodes;
 }
 
-const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Streptococcus_fasttree.newick"; // <-- Paste your file path here
+
+// === Main Execution ===
+
+// 👇 Replace with your input file path
+const inputPath = "C:/Users/amgot/OneDrive/Desktop/Edgar Internship/EDGAR_Test/Main/newicks/EDGAR_Acidovorax_fasttree.newick";
 const outputPath = inputPath.replace(".newick", ".json");
 
+// Check if input file exists
 if (!fs.existsSync(inputPath)) {
     console.error("❌ File not found. Please check the input path.");
     process.exit(1);
 }
 
+// Read and convert the Newick file
 const newickData = fs.readFileSync(inputPath, 'utf8');
 const parsedTree = parseNewick(newickData);
 const jsonResult = newickToCustomFormat(parsedTree);
 
-// === Save to .js without customTreeData ===
-const outputJS = JSON.stringify(jsonResult, null, 2)
-    .replace(/"getLinkColor\('([^']+)'\)"/g, "getLinkColor('$1')") + "\n"; 
+// Save as .json file
+fs.writeFileSync(outputPath, JSON.stringify(jsonResult, null, 2), 'utf8');
 
-fs.writeFileSync(outputPath, outputJS, 'utf8');
-
-console.log("Custom-format JS tree saved to: " + outputPath);
-console.log("Conversion completed successfully.");
+console.log("✅ Tree converted to custom JSON format:");
+console.log("📁 Saved to:", outputPath);
