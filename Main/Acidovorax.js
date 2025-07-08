@@ -1,5 +1,11 @@
 import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
-import { getMaxDepth, buildGeneSetRecursively, annotateTreeWithCoreAndTotalGenes } from './functions.js';
+import {
+  getMaxDepth,
+  buildGeneSetRecursively,
+  annotateTreeWithCoreAndTotalGenes,
+  getGeneDifferenceCSV,
+  downloadCSV
+} from './functions.js';
 import { setupToggleBootstrapButton, setupToggleLinkColorButton } from './buttons.js';
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -87,7 +93,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         spacingBottom: 30,
         marginRight: 400,
         events: {
-          load: function() {
+          load: function () {
             this.bootstrapVisible = true;
           }
         }
@@ -96,7 +102,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         text: `${title} Phylogenetic Tree`
       },
       tooltip: {
-        pointFormatter: function() {
+        pointFormatter: function () {
           const nameStr = String(this.name);
           const coreGenes = this.core_genes ?? 'N/A';
           const totalGenes = this.total_genes ?? (this.geneSet?.size ?? 'N/A');
@@ -117,7 +123,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         dataLabels: {
           align: 'left',
           linkFormat: '<span style="color: green; font-size: 8px;">{point.customLabel}</span>',
-          formatter: function() {
+          formatter: function () {
             const chart = this.series.chart;
             const nameStr = String(this.name);
             const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
@@ -143,13 +149,46 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         }],
         point: {
           events: {
-            click: function() {
-              if (!this.children || this.children.length === 0) {
-                if (!this.id.startsWith('Internal') && this.id !== 'root') {
-                  const newLabel = prompt('Edit node label:', this.name);
-                  if (newLabel !== null) {
-                    this.update({ name: newLabel });
-                  }
+            click: function (event) {
+              const clickedNode = this;
+              const originalEvent = event?.originalEvent || event || window.event;
+
+              // ✅ Shift + Click → compare with sibling
+              if (originalEvent?.shiftKey) {
+                const parentNodeId = clickedNode.parent;
+
+                if (!parentNodeId) {
+                  alert("This node has no parent.");
+                  return;
+                }
+
+                // Get sibling (another node with same parent, but different ID)
+                const siblings = chart.series[0].points.filter(p =>
+                  p.parent === parentNodeId && p.id !== clickedNode.id
+                );
+
+                if (siblings.length === 0) {
+                  alert("No sibling found to compare with.");
+                  return;
+                }
+
+                const sibling = siblings[0]; // take first sibling (or implement selection)
+
+                if (clickedNode.geneSet && sibling?.geneSet) {
+                  const csvContent = getGeneDifferenceCSV(clickedNode.geneSet, sibling.geneSet);
+                  downloadCSV(csvContent, `${clickedNode.id}_vs_${sibling.id}_diff.csv`);
+                } else {
+                  alert("Gene data missing for this node or its sibling.");
+                }
+
+                return; // Skip rename
+              }
+
+              // 🖱️ Normal click: prompt to rename
+              if (!clickedNode.id.startsWith('Internal') && clickedNode.id !== 'root') {
+                const newLabel = prompt('Edit node label:', clickedNode.name);
+                if (newLabel !== null) {
+                  clickedNode.update({ name: newLabel });
                 }
               }
             }

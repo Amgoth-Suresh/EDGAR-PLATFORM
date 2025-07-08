@@ -103,6 +103,42 @@ export function annotateTreeWithCoreAndTotalGenes(data, geneCounts) {
     }
   });
 }
+// Compare gene sets and return CSV content
+
+export function getGeneDifferenceCSV(setA, setB) {
+  const normalize = val => String(val || '').trim();
+
+  const normA = [...setA].map(normalize);
+  const normB = [...setB].map(normalize);
+
+  console.log("Normalized A:", normA);
+  console.log("Normalized B:", normB);
+
+  const normSetA = new Set(normA);
+  const normSetB = new Set(normB);
+
+  const difference = [...normSetA].filter(g => !normSetB.has(g));
+  console.log("Difference:", difference);
+
+  if (difference.length === 0) {
+    return "Gene Name\nNo differences";
+  }
+
+  return "Gene Name\n" + difference.join("\n");
+}
+
+
+
+// Trigger download of CSV content
+export function downloadCSV(content, filename = "gene_difference.csv") {
+  const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 
 
