@@ -90,43 +90,23 @@ export function annotateTreeWithCoreAndTotalGenes(data, geneCounts) {
         const strainGeneSet = new Set(geneCounts[node.id]);
         const localCoreGenes = siblingCore.filter(g => strainGeneSet.has(g));
         node.core_genes = localCoreGenes.length;
+        node.core_gene_list = localCoreGenes;  // ✅ Add this line
       } else {
-        node.core_genes = 0;  // No meaningful comparison
+        node.core_genes = 0;
+        node.core_gene_list = [];
       }
 
       node.total_genes = totalGenes;
     } else {
       // Internal node
       const strains = getDescendantStrains(node.id);
-      node.core_genes = getCoreGenes(strains).length;
+      const coreGenes = getCoreGenes(strains);
+      node.core_genes = coreGenes.length;
+      node.core_gene_list = coreGenes;  // ✅ Add this line
       node.total_genes = getUnionGenes(strains).length;
     }
   });
 }
-// Compare gene sets and return CSV content
-
-export function getGeneDifferenceCSV(setA, setB) {
-  const normalize = val => String(val || '').trim();
-
-  const normA = [...setA].map(normalize);
-  const normB = [...setB].map(normalize);
-
-  console.log("Normalized A:", normA);
-  console.log("Normalized B:", normB);
-
-  const normSetA = new Set(normA);
-  const normSetB = new Set(normB);
-
-  const difference = [...normSetA].filter(g => !normSetB.has(g));
-  console.log("Difference:", difference);
-
-  if (difference.length === 0) {
-    return "Gene Name\nNo differences";
-  }
-
-  return "Gene Name\n" + difference.join("\n");
-}
-
 
 
 // Trigger download of CSV content

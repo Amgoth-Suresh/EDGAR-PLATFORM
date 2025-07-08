@@ -1,11 +1,5 @@
 import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
-import {
-  getMaxDepth,
-  buildGeneSetRecursively,
-  annotateTreeWithCoreAndTotalGenes,
-  getGeneDifferenceCSV,
-  downloadCSV
-} from './functions.js';
+import { getMaxDepth, buildGeneSetRecursively, annotateTreeWithCoreAndTotalGenes, downloadCSV} from './functions.js';
 import { setupToggleBootstrapButton, setupToggleLinkColorButton } from './buttons.js';
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -153,38 +147,29 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
               const clickedNode = this;
               const originalEvent = event?.originalEvent || event || window.event;
 
-              // ✅ Shift + Click → compare with sibling
+              // ✅ Shift+Click → download gained genes vs parent
               if (originalEvent?.shiftKey) {
-                const parentNodeId = clickedNode.parent;
+                const parentNode = chart.series[0].points.find(p => p.id === clickedNode.parent);
 
-                if (!parentNodeId) {
-                  alert("This node has no parent.");
+                if (!parentNode || !Array.isArray(clickedNode.core_gene_list) || !Array.isArray(parentNode.core_gene_list)) {
+                  alert("Core gene data missing for this node or its parent.");
                   return;
                 }
 
-                // Get sibling (another node with same parent, but different ID)
-                const siblings = chart.series[0].points.filter(p =>
-                  p.parent === parentNodeId && p.id !== clickedNode.id
-                );
+                const childCoreGenes = new Set(clickedNode.core_gene_list);
+                const parentCoreGenes = new Set(parentNode.core_gene_list);
 
-                if (siblings.length === 0) {
-                  alert("No sibling found to compare with.");
-                  return;
-                }
+                const gainedGenes = [...childCoreGenes].filter(g => !parentCoreGenes.has(g));
 
-                const sibling = siblings[0]; // take first sibling (or implement selection)
+                const csvContent = gainedGenes.length > 0
+                  ? "Gene Name\n" + gainedGenes.join("\n")
+                  : "Gene Name\nNo differences";
 
-                if (clickedNode.geneSet && sibling?.geneSet) {
-                  const csvContent = getGeneDifferenceCSV(clickedNode.geneSet, sibling.geneSet);
-                  downloadCSV(csvContent, `${clickedNode.id}_vs_${sibling.id}_diff.csv`);
-                } else {
-                  alert("Gene data missing for this node or its sibling.");
-                }
-
-                return; // Skip rename
+                downloadCSV(csvContent, `${clickedNode.id}_gained_genes.csv`);
+                return; // prevent rename on Shift+Click
               }
 
-              // 🖱️ Normal click: prompt to rename
+              // 🖱️ Normal click → allow rename on leaves
               if (!clickedNode.id.startsWith('Internal') && clickedNode.id !== 'root') {
                 const newLabel = prompt('Edit node label:', clickedNode.name);
                 if (newLabel !== null) {
