@@ -3,8 +3,8 @@ import os
 import io
 
 # === Step 1: Set folder path ===
-folder_path = r"C:\Users\amgot\OneDrive\Desktop\Edgar Internship\EDGAR_Test\Main\Thiomonas_binary"
-
+folder_path = r"C:\Users\amgot\OneDrive\Desktop\Edgar Internship\EDGAR_Test\Main\Acidovorax_binary"
+parent_path = os.path.dirname(folder_path)
 # === Step 2: Detect necessary files ===
 phylip_file = next((f for f in os.listdir(folder_path) if f.endswith(".phylip")), None)
 ids_file = next((f for f in os.listdir(folder_path) if f.endswith(".ids")), None)
@@ -29,46 +29,69 @@ with open(ids_path, 'r') as f:
     strain_names = [line.strip().split('\t')[-1] for line in f.readlines()]
 binary_matrix.columns = strain_names
 
-# === Step 5: Load gene names from TSV ===
+# === Step 5: Load gene names + descriptions from TSV ===
 tsv_df = pd.read_csv(tsv_path, sep='\t')
-gene_id_columns = tsv_df.iloc[:, ::2]
-gene_names = gene_id_columns.values.flatten().tolist()
-gene_names = gene_names[:binary_matrix.shape[0]]
-binary_matrix.index = gene_names
 
-# === Step 6: Save CSV to disk + memory ===
+gene_info = []
+for _, row in tsv_df.iterrows():
+    for i in range(0, len(row), 2):  # even = ID, odd = desc
+        gene_id = str(row[i]).strip()
+        gene_desc = str(row[i + 1]).strip() if i + 1 < len(row) else ''
+        gene_info.append((gene_id, gene_desc))
+
+# Trim to matrix size
+gene_info = gene_info[:binary_matrix.shape[0]]
+
+# Split to gene_ids and descriptions
+gene_ids = [g[0] for g in gene_info]
+gene_descs = [g[1] for g in gene_info]
+
+# === Step 6: Add gene ID as index and description as a column ===
+binary_matrix.index = gene_ids
+binary_matrix.insert(0, "Description", gene_descs)
+
+# === Step 7: Save CSV to disk and memory ===
 csv_memory = io.StringIO()
 binary_matrix.to_csv(csv_memory)
 csv_string = csv_memory.getvalue()
 
-csv_disk_path = os.path.join(folder_path, "presence_absence_matrix1.csv")
+csv_disk_path = os.path.join(folder_path, "presence_absence_matrix_with_descriptions.csv")
 binary_matrix.to_csv(csv_disk_path)
 print(f"✅ CSV saved to: {csv_disk_path}")
 
-# === Step 7: Create JS geneCounts string ===
+# === Step 8: Create JS geneCounts and geneDescriptions ===
+# geneCounts = { strain: [genes where value == 1] }
 gene_counts_dict = {
     strain: binary_matrix.index[binary_matrix[strain] == 1].tolist()
-    for strain in binary_matrix.columns
+    for strain in binary_matrix.columns if strain != "Description"
 }
 
-js_memory = io.StringIO()
-js_memory.write("const geneCounts = {\n")
-for strain, genes in gene_counts_dict.items():
-    gene_list = ', '.join(f'"{gene}"' for gene in genes)
-    js_memory.write(f'  "{strain}": [{gene_list}],\n')
-js_memory.write("};\n")
-js_string = js_memory.getvalue()
+# geneDescriptions = { gene_id: description }
+gene_desc_dict = dict(zip(gene_ids, gene_descs))
 
-js_disk_path = os.path.join(folder_path, "gene_counts.js")
-with open(js_disk_path, 'w') as f:
-    f.write(js_string)
+# === Step 9: Write JS output (geneCounts + geneDescriptions) ===
+js_disk_path = os.path.join(parent_path, "gene_counts8.js")
+with open(js_disk_path, 'w', encoding='utf-8') as f:
+    # Write geneCounts
+    f.write("const geneCounts = {\n")
+    for strain, genes in gene_counts_dict.items():
+        gene_list = ', '.join(f'"{gene}"' for gene in genes)
+        f.write(f'  "{strain}": [{gene_list}],\n')
+    f.write("};\n\n")
 
-print(f"✅ geneCounts JS saved to: {js_disk_path}")
+    # Write geneDescriptions
+    f.write("const geneDescriptions = {\n")
+    for gene, desc in gene_desc_dict.items():
+        safe_desc = desc.replace('"', "'")  # Escape any double quotes
+        f.write(f'  "{gene}": "{safe_desc}",\n')
+    f.write("};\n")
 
-# === Optional: Preview ===
-print("\n✅ CSV (in memory preview):")
+print(f"✅ JavaScript file created: {js_disk_path}")
+
+# === Optional: Preview in terminal ===
+print("\n✅ CSV (preview):")
 print(csv_string[:500])
-print("\n✅ JS (in memory preview):")
-print(js_string[:500])
 
-# Now both `csv_string` and `js_string` are ready for in-memory use
+with open(js_disk_path, 'r', encoding='utf-8') as f:
+    print("\n✅ gene_counts.js (preview):")
+    print(f.read()[:500])

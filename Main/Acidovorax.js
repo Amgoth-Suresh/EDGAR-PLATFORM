@@ -161,11 +161,19 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
 
                 const gainedGenes = [...childCoreGenes].filter(g => !parentCoreGenes.has(g));
 
-                const csvContent = gainedGenes.length > 0
-                  ? "Gene Name\n" + gainedGenes.join("\n")
-                  : "Gene Name\nNo differences";
+                let csvContent = "Gene Name,Description\n";
+
+                if (gainedGenes.length === 0) {
+                  csvContent += "No differences\tN/A";
+                } else {
+                  for (const gene of gainedGenes) {
+                    const description = geneDescriptions?.[gene] || "N/A";
+                    csvContent += `${gene},${description}\n`;
+                  }
+                }
 
                 downloadCSV(csvContent, `${clickedNode.id}_gained_genes.csv`);
+
                 return; // prevent rename on Shift+Click
               }
 
