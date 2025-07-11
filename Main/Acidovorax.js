@@ -1,6 +1,20 @@
-import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
-import { getMaxDepth, buildGeneSetRecursively, annotateTreeWithCoreAndTotalGenes, downloadCSV} from './functions.js';
-import { setupToggleBootstrapButton, setupToggleLinkColorButton } from './buttons.js';
+import {
+  getLinkColor,
+  getLinkColorByBootStrap,
+  getMaxDepth,
+  buildGeneSetRecursively,
+  annotateTreeWithCoreAndTotalGenes,
+  downloadCSV
+} from './functions.js';
+
+import {
+  setupToggleBootstrapButton,
+  setupToggleLinkColorButton,
+  setupToggleCoreGeneLabelButton
+} from './buttons.js';
+
+// Global toggle flag
+window.coreGeneLabelVisible = false;
 
 document.addEventListener("DOMContentLoaded", () => {
   setupToggleBootstrapButton();
@@ -31,10 +45,10 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       }
     });
 
-    // Annotate core + total gene counts dynamically (all nodes)
+    // Annotate core + total gene counts dynamically
     annotateTreeWithCoreAndTotalGenes(data, geneCounts);
 
-    // Identify root nodes
+    // Identify and process root nodes
     const roots = data.filter(p => !p.parent || p.parent === '');
     roots.forEach(root => {
       buildGeneSetRecursively(root.id, map, data);
@@ -88,7 +102,24 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
         marginRight: 400,
         events: {
           load: function () {
-            this.bootstrapVisible = true;
+            this.bootstrapVisible = false;
+
+            const points = this.series[0].points;
+            const pointMap = new Map(points.map(p => [p.id, p]));
+
+            points.forEach(point => {
+              const isLeaf = !points.some(p => p.parent === point.id);
+              if (isLeaf && point.parent) {
+                const parent = pointMap.get(point.parent);
+                if (parent && parent.color) {
+                  point.options.color = parent.color;
+                  point.color = parent.color;
+                  point.update({}, false);
+                }
+              }
+            });
+
+            this.redraw();
           }
         }
       },
@@ -98,11 +129,22 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       tooltip: {
         pointFormatter: function () {
           const nameStr = String(this.name);
-          const coreGenes = this.core_genes ?? 'N/A';
           const totalGenes = this.total_genes ?? (this.geneSet?.size ?? 'N/A');
           const branchLen = `<b>Branch Length:</b> ${this.customLabel || 'N/A'}<br>`;
-          const bootstrap = `<b>BootStrap Value:</b> ${nameStr}<br>`;
-          return `<b>Number of Genes:</b> ${totalGenes}<br><b>Core Genes:</b> ${coreGenes}<br>${bootstrap}${branchLen}`;
+          const isInternal = this.id?.startsWith('Internal') || this.id === 'root';
+
+          let tooltip = `<b>Number of Genes:</b> ${totalGenes}<br>`;
+
+          if (isInternal) {
+            const coreGenes = this.core_genes ?? 'N/A';
+            tooltip += `<b>Core Genes:</b> ${coreGenes}<br>`;
+            tooltip += `<b>Bootstrap Value:</b> ${nameStr}<br>`;
+          } else {
+            tooltip += `<b>Strain Name:</b> ${nameStr}<br>`;
+          }
+
+          tooltip += branchLen;
+          return tooltip;
         }
       },
       series: [{
@@ -119,13 +161,20 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
           linkFormat: '<span style="color: green; font-size: 8px;">{point.customLabel}</span>',
           formatter: function () {
             const chart = this.series.chart;
-            const nameStr = String(this.name);
-            const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
-            if (isNumeric && !chart.bootstrapVisible == false) {
-              return '';
-            } else {
-              return '<span style="font-size: 12px;">' + this.name + '</span>';
+            const isInternal = this.id?.startsWith('Internal') || this.id === 'root';
+            const isBootstrap = /^[+-]?\d+(\.\d+)?$/.test(this.name);
+
+            if (isInternal && window.coreGeneLabelVisible) {
+              return `<span style="font-size: 10px;">Core Genes: ${this.core_genes ?? 'N/A'}</span>`;
             }
+
+            if (isBootstrap) {
+              return chart.bootstrapVisible
+                ? `<span style="font-size: 10px;">${this.name}</span>`
+                : '';
+            }
+
+            return `<span style="font-size: 12px;">${this.name}</span>`;
           },
           pointerEvents: 'none',
           style: {
@@ -147,7 +196,6 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
               const clickedNode = this;
               const originalEvent = event?.originalEvent || event || window.event;
 
-              // ✅ Shift+Click → download gained genes vs parent
               if (originalEvent?.shiftKey) {
                 const parentNode = chart.series[0].points.find(p => p.id === clickedNode.parent);
 
@@ -158,13 +206,12 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
 
                 const childCoreGenes = new Set(clickedNode.core_gene_list);
                 const parentCoreGenes = new Set(parentNode.core_gene_list);
-
                 const gainedGenes = [...childCoreGenes].filter(g => !parentCoreGenes.has(g));
 
                 let csvContent = "Gene Name,Description\n";
 
                 if (gainedGenes.length === 0) {
-                  csvContent += "No differences\tN/A";
+                  csvContent += "No differences,N/A";
                 } else {
                   for (const gene of gainedGenes) {
                     const description = geneDescriptions?.[gene] || "N/A";
@@ -173,15 +220,13 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
                 }
 
                 downloadCSV(csvContent, `${clickedNode.id}_gained_genes.csv`);
-
-                return; // prevent rename on Shift+Click
+                return;
               }
 
-              // 🖱️ Normal click → allow rename on leaves
               if (!clickedNode.id.startsWith('Internal') && clickedNode.id !== 'root') {
                 const newLabel = prompt('Edit node label:', clickedNode.name);
                 if (newLabel !== null) {
-                  clickedNode.update({ name: newLabel });
+                  this.update({ name: newLabel });
                 }
               }
             }
@@ -190,7 +235,9 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       }]
     });
 
+    // Setup interactivity
     setupToggleLinkColorButton(chart, data);
+    setupToggleCoreGeneLabelButton(chart);
   })
   .catch(error => {
     console.error("Failed to load or process JSON:", error);
