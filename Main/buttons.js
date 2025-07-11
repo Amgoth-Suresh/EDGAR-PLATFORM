@@ -1,45 +1,37 @@
-// button.js
+import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
+
+// ✅ Bootstrap Toggle
 export function setupToggleBootstrapButton() {
   const btn = document.getElementById('toggle-bootstrap');
   if (!btn) return;
 
   btn.addEventListener('click', () => {
     const chart = Highcharts.charts.find(c => c && c.renderTo.id === 'container');
-    if (chart) {
-      chart.bootstrapVisible = !chart.bootstrapVisible;
+    if (!chart) return;
 
-      chart.series[0].update({
-        dataLabels: {
-          formatter: function () {
-            const chart = this.series.chart;
-            const nameStr = String(this.name);
-            const isNumeric = /^[+-]?\d+(\.\d+)?$/.test(nameStr);
-            if (isNumeric && !chart.bootstrapVisible) {
-              return '';
-            } else {
-              return '<span style="font-size: 12px;">' + this.name + '</span>';
-            }
-          }
-        }
-      }, false);
+    chart.bootstrapVisible = !chart.bootstrapVisible;
 
-      chart.redraw();
-      btn.innerText = chart.bootstrapVisible ? 'Hide Bootstrap Values' : 'Show Bootstrap Values';
-    }
+    // Re-evaluate all labels
+    chart.series[0].points.forEach(p => p.update({}, false));
+    chart.redraw();
+
+    btn.innerText = chart.bootstrapVisible
+      ? 'Hide Bootstrap Values'
+      : 'Show Bootstrap Values';
   });
 }
 
-
-import { getLinkColor, getLinkColorByBootStrap } from './functions.js';
+// ✅ Link Color Toggle
 export function setupToggleLinkColorButton(chart, data) {
   const button = document.getElementById('toggleBootstrapColor');
-  let colorMode = 'customLabel'; // start with bootstrap coloring
+  let colorMode = 'customLabel'; // start with customLabel
 
   button.addEventListener('click', () => {
     colorMode = colorMode === 'bootstrap' ? 'customLabel' : 'bootstrap';
 
     data.forEach(point => {
       if (!point.parent) return;
+
       const color = colorMode === 'bootstrap'
         ? getLinkColorByBootStrap(point.inheritedBootstrap || 0)
         : getLinkColor(point.customLabel);
@@ -52,11 +44,30 @@ export function setupToggleLinkColorButton(chart, data) {
 
     chart.series[0].setData(data, true, false, false);
 
-    // Update button text
-    button.innerText = colorMode === 'bootstrap' ? 'Color Based on Branch Lengths' : 'Color Based on Bootstrap Values';
+    button.innerText = colorMode === 'bootstrap'
+      ? 'Color Based on Branch Lengths'
+      : 'Color Based on Bootstrap Values';
   });
 
-  // Set initial button text
   button.innerText = 'Color Based on Bootstrap Values';
 }
 
+// ✅ Core Gene Count Toggle
+export function setupToggleCoreGeneLabelButton(chart) {
+  window.coreGeneLabelVisible = false;
+
+  const btn = document.getElementById("toggle-core-btn");
+  if (!btn) return;
+
+  btn.addEventListener("click", () => {
+    window.coreGeneLabelVisible = !window.coreGeneLabelVisible;
+
+    btn.textContent = window.coreGeneLabelVisible
+      ? "Hide Core Gene Count"
+      : "Show Core Gene Count";
+
+    // Re-evaluate all labels
+    chart.series[0].points.forEach(p => p.update({}, false));
+    chart.redraw();
+  });
+}
