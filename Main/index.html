@@ -12,23 +12,55 @@
     <script src="https://code.highcharts.com/12.1.2/modules/annotations/annotations.js"></script>
 
     <link rel="stylesheet" href="style.css">
-    
 </head>
 <body>
     <figure class="highcharts-figure">
+        <!-- Button container -->
         <div class="button-container">
-        <button id="toggle-bootstrap" style="font-size: 12px; padding: 4px 8px;">Show Bootstrap Values</button> 
-        <button id="toggleBootstrapColor" style="font-size: 12px; padding: 4px 8px;">Toggle Bootstrap Color</button>
-        <button id="toggle-core-btn">Show Core Gene Count</button>
-        
+            <button id="toggle-bootstrap" style="font-size: 12px; padding: 4px 8px;">Show Bootstrap Values</button> 
+            <button id="toggleBootstrapColor" style="font-size: 12px; padding: 4px 8px;">Toggle Bootstrap Color</button>
+            <button id="toggle-core-btn" style="font-size: 12px; padding: 4px 8px;">Show Core Gene Count</button>
         </div>
+
+        <!-- Legend placed directly below buttons -->
+        <div id="linkColorLegend" style="margin-top: 10px; font-family: sans-serif;">
+            <strong>Link Color Based On Branch Length:</strong>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                <div><span style="display:inline-block;width:20px;height:20px;background:#2ECC71;border:1px solid #ccc;margin-right:8px;"></span> value &lt; 0.001 (green)</div>
+                <div><span style="display:inline-block;width:20px;height:20px;background:#F1C40F;border:1px solid #ccc;margin-right:8px;"></span> 0.001 ≤ value &lt; 0.01 (yellow)</div>
+                <div><span style="display:inline-block;width:20px;height:20px;background:#E67E22;border:1px solid #ccc;margin-right:8px;"></span> 0.01 ≤ value &lt; 0.1 (orange)</div>
+                <div><span style="display:inline-block;width:20px;height:20px;background:#E74C3C;border:1px solid #ccc;margin-right:8px;"></span> value ≥ 0.1 (red)</div>
+            </div>
+        </div>
+
+        <div id="bootstrapColorLegend" style="display: none; margin-top: 10px; font-family: sans-serif;">
+            <strong>Link Color Legend (Bootstrap values):</strong>
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-top: 8px;">
+                <div>
+                    <span style="display:inline-block;width:20px;height:20px;background:green;border:1px solid #ccc;margin-right:8px;"></span>
+                    Bootstrap = 1 (green)
+                </div>
+                <div>
+                    <span style="display:inline-block;width:20px;height:20px;background:orange;border:1px solid #ccc;margin-right:8px;"></span>
+                    0.6 ≤ Bootstrap &lt; 1 (orange)
+                </div>
+                <div>
+                    <span style="display:inline-block;width:20px;height:20px;background:red;border:1px solid #ccc;margin-right:8px;"></span>
+                    Bootstrap &lt; 0.6 (red)
+                </div>
+            </div>
+        </div>
+
+        <!-- Tree container -->
         <div id="container"></div>
+
+        <!-- Description -->
         <hr/>
         <p class="highcharts-description"> 
-                       
-        <b>Phylogenetic Tree Visualisation </b> 
+            <b>Phylogenetic Tree Visualisation </b> 
         </p>
     </figure>
+
     <script src="gene_counts.js"></script>
     <script type="module" src="Acidovorax.js"></script>
 </body>

@@ -22,10 +22,11 @@ export function getMaxDepth(data) {
 
 export function getLinkColorByBootStrap(BootstrapValue) {
   const num = parseFloat(BootstrapValue);
-  if (num === 1) return 'green';
-  else if (num >= 0.6 && num < 1) return 'orange';
-  return 'red';
+  if (num > 0.9) return 'green';        // above 0.9 → green
+  else if (num >= 0.6 && num <= 0.9) return 'orange'; // between 0.6 and 0.9 → orange
+  return 'red';                         // below 0.6 → red
 }
+
 
 export function buildGeneSetRecursively(nodeId, map, data) {
   const node = map.get(nodeId);

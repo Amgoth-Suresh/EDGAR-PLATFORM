@@ -22,6 +22,7 @@ export function setupToggleBootstrapButton() {
 }
 
 // ✅ Link Color Toggle
+// ✅ Link Color Toggle (with dynamic legend switching)
 export function setupToggleLinkColorButton(chart, data) {
   const button = document.getElementById('toggleBootstrapColor');
   let colorMode = 'customLabel'; // start with customLabel
@@ -44,13 +45,29 @@ export function setupToggleLinkColorButton(chart, data) {
 
     chart.series[0].setData(data, true, false, false);
 
+    // Update button text
     button.innerText = colorMode === 'bootstrap'
       ? 'Color Based on Branch Lengths'
       : 'Color Based on Bootstrap Values';
+
+    // ✅ Toggle legends
+    const customLegend = document.getElementById('linkColorLegend');
+    const bootstrapLegend = document.getElementById('bootstrapColorLegend');
+
+    if (customLegend && bootstrapLegend) {
+      if (colorMode === 'bootstrap') {
+        customLegend.style.display = 'none';
+        bootstrapLegend.style.display = 'block';
+      } else {
+        customLegend.style.display = 'block';
+        bootstrapLegend.style.display = 'none';
+      }
+    }
   });
 
   button.innerText = 'Color Based on Bootstrap Values';
 }
+
 
 // ✅ Core Gene Count Toggle
 export function setupToggleCoreGeneLabelButton(chart) {
