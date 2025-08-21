@@ -1,3 +1,4 @@
+// Acidovorax.js
 import {
   getLinkColor,
   getLinkColorByBootStrap,
@@ -13,7 +14,39 @@ import {
   setupToggleCoreGeneLabelButton
 } from './buttons.js';
 
-// Global toggle flag
+// ===== 1) Disable collapse ONLY on Shift+Click (safe wrapper) =====
+let suppressNextCollapse = false;
+
+// Mark Shift+Click inside the chart container before Highcharts handles it
+document.addEventListener(
+  'mousedown',
+  (e) => {
+    if (e.shiftKey && e.target.closest?.('#container')) {
+      suppressNextCollapse = true;
+    }
+  },
+  true // capture phase
+);
+
+// Safely obtain the treegraph point class and wrap toggleCollapse
+(function setupTreegraphWrap() {
+  const sg = Highcharts.seriesTypes?.treegraph;
+  const PointClass = sg?.prototype?.pointClass; // safe access
+
+  if (PointClass?.prototype?.toggleCollapse) {
+    Highcharts.wrap(PointClass.prototype, 'toggleCollapse', function (proceed, a, flag) {
+      if (suppressNextCollapse) {
+        suppressNextCollapse = false; // consume once
+        return; // block built-in expand/collapse
+      }
+      return proceed.apply(this, Array.prototype.slice.call(arguments, 1));
+    });
+  } else {
+    console.warn('[treegraph] toggleCollapse not found; collapse suppression unavailable.');
+  }
+})();
+
+// ===== UI state =====
 window.coreGeneLabelVisible = false;
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -38,14 +71,23 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
     const map = new Map();
     data.forEach(p => map.set(p.id, p));
 
-    // Attach gene sets for leaf nodes from geneCounts
+    // ===== 2) Attach gene sets for leaf nodes from geneCounts (robust) =====
+    let matchedById = 0, matchedByName = 0;
     data.forEach(p => {
-      if (geneCounts[p.id]) {
+      if (geneCounts?.[p.id]?.length) {
         p.geneSet = new Set(geneCounts[p.id]);
+        matchedById++;
+        return;
+      }
+      // optional fallback: try by exact name
+      if (geneCounts?.[p.name]?.length) {
+        p.geneSet = new Set(geneCounts[p.name]);
+        matchedByName++;
       }
     });
+    // console.log(`[genes] matched by id=${matchedById}, by name=${matchedByName}`);
 
-    // Annotate core + total gene counts dynamically
+    // Annotate core + total gene counts dynamically (fills core_gene_list, etc.)
     annotateTreeWithCoreAndTotalGenes(data, geneCounts);
 
     // Identify and process root nodes
@@ -54,17 +96,33 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
       buildGeneSetRecursively(root.id, map, data);
     });
 
+    // ===== 3) Materialize stable numeric fields used by tooltips/labels =====
+    data.forEach(p => {
+      // total genes
+      const size = p.geneSet instanceof Set
+        ? p.geneSet.size
+        : Array.isArray(p.geneSet)
+          ? p.geneSet.length
+          : 0;
+      p.total_genes = size;
+
+      // core genes (expect annotateTreeWithCoreAndTotalGenes to set core_gene_list)
+      if (Array.isArray(p.core_gene_list)) {
+        p.core_genes = p.core_gene_list.length;
+      }
+    });
+
     // Propagate bootstrap values
     const queue = [...roots];
     while (queue.length > 0) {
       const node = queue.shift();
       const isInternalNode = node.id.startsWith('Internal') || node.id === 'root';
-      if (isInternalNode && /^[+-]?\d+(\.\d+)?$/.test(node.name)) {
+      if (isInternalNode && /^[+-]?\d+(\.\d+)?$/.test(String(node.name))) {
         node.bootstrap = parseFloat(node.name);
       }
       const children = data.filter(p => p.parent === node.id);
       children.forEach(child => {
-        child.inheritedBootstrap = node.bootstrap ?? node.inheritedBootstrap;
+        child.inheritedBootstrap = node.bootstrap ?? child.inheritedBootstrap;
         queue.push(child);
       });
     }
@@ -162,7 +220,7 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
           formatter: function () {
             const chart = this.series.chart;
             const isInternal = this.id?.startsWith('Internal') || this.id === 'root';
-            const isBootstrap = /^[+-]?\d+(\.\d+)?$/.test(this.name);
+            const isBootstrap = /^[+-]?\d+(\.\d+)?$/.test(String(this.name));
 
             if (isInternal && window.coreGeneLabelVisible) {
               return `<span style="font-size: 10px;">Core Genes: ${this.core_genes ?? 'N/A'}</span>`;
@@ -215,7 +273,10 @@ fetch('newicks/EDGAR_Acidovorax_fasttree.json')
                 } else {
                   for (const gene of gainedGenes) {
                     const description = geneDescriptions?.[gene] || "N/A";
-                    csvContent += `${gene},${description}\n`;
+                    // basic CSV escaping
+                    const safeGene = String(gene).replace(/"/g, '""');
+                    const safeDesc = String(description).replace(/"/g, '""');
+                    csvContent += `"${safeGene}","${safeDesc}"\n`;
                   }
                 }
 
